@@ -236,7 +236,9 @@ Note: this example was written without reading the device tree. Confirm the orig
 ```
 python3 release.py v1.0
 ```
-This builds both zips from your files and creates the GitHub release (or uploads to it if it exists). It needs the GitHub CLI (`gh auth login`).
+This builds the module, the system installer and the scripts zips from `release-files/system_ext/...` and creates the GitHub release (or uploads to it if it exists). It needs the GitHub CLI (`gh auth login`).
+
+**System installer zip (no Magisk):** unzip it, then as root run `sh install_root.sh`. It backs up the stock files and replaces them with the patched ones.
 
 **GitHub Actions release (scripts only):**
 

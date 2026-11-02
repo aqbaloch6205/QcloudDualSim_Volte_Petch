@@ -18,8 +18,8 @@ die() { say "ERROR: $*"; exit 1; }
 [ "$QV_TEST" = 1 ] || [ "$(id -u)" = 0 ] || die "run as root: su -c \"sh $0\""
 
 APK_SRC=; LIB_SRC=
-for p in "$D/Ims6.apk" "$D/../system/system_ext/priv-app/Ims6/Ims6.apk"; do [ -s "$p" ] && { APK_SRC=$p; break; }; done
-for p in "$D/libims.lge.so" "$D/../system/system_ext/lib64/libims.lge.so"; do [ -s "$p" ] && { LIB_SRC=$p; break; }; done
+for p in "$D/Ims6.apk" "$D/system/system_ext/priv-app/Ims6/Ims6.apk" "$D/../system/system_ext/priv-app/Ims6/Ims6.apk"; do [ -s "$p" ] && { APK_SRC=$p; break; }; done
+for p in "$D/libims.lge.so" "$D/system/system_ext/lib64/libims.lge.so" "$D/../system/system_ext/lib64/libims.lge.so"; do [ -s "$p" ] && { LIB_SRC=$p; break; }; done
 [ -n "$APK_SRC" ] || die "Ims6.apk not found next to the script"
 [ -n "$LIB_SRC" ] || die "libims.lge.so not found next to the script"
 

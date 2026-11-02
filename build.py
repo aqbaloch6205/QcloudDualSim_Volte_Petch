@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-"""Builds the release zips. Needs only Python 3 (no zip command).
+"""Builds the release zips with Python 3 only (no zip command needed).
 
-  dist/QcloudVolte-Scripts.zip  scripts only (no LG files). Always built.
-  dist/QcloudVolte-Module.zip   Magisk/KernelSU module. Built only when your own patched
-                                files are in release-files/ (see release-files/README.txt).
+Put your two modified files exactly here:
+  release-files/system_ext/lib64/libims.lge.so
+  release-files/system_ext/priv-app/Ims6/Ims6.apk
+
+Output in dist/:
+  QcloudVolte-Scripts.zip           scripts only, no LG files (always built)
+  QcloudVolte-Module.zip            Magisk/KernelSU module (built when your files exist)
+  QcloudVolte-System-Installer.zip  files in system/ layout + install scripts, copies them
+                                    into /system_ext without Magisk (built when your files exist)
 """
 import hashlib, os, shutil, zipfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
-APK = "release-files/Ims6.apk"
-LIB = "release-files/libims.lge.so"
+
+APK_SRC = "release-files/system_ext/priv-app/Ims6/Ims6.apk"
+LIB_SRC = "release-files/system_ext/lib64/libims.lge.so"
+APK_DST = "system/system_ext/priv-app/Ims6/Ims6.apk"
+LIB_DST = "system/system_ext/lib64/libims.lge.so"
 LIB_MD5 = "6cc81e7aaffafe13fcebf0a10171f20f"
 
 
@@ -29,29 +38,43 @@ def add_tree(z, src, arc_root=""):
             z.write(full, arc)
 
 
+def has(path):
+    return os.path.isfile(path) and os.path.getsize(path) > 0
+
+
 shutil.rmtree("dist", ignore_errors=True)
 os.makedirs("dist")
 built = []
 
-# scripts zip (no LG binaries)
+# 1. scripts zip (no LG files)
 with zipfile.ZipFile("dist/QcloudVolte-Scripts.zip", "w", zipfile.ZIP_DEFLATED) as z:
-    add_tree(z, "scripts")
+    add_tree(z, "scripts", "scripts")
 built.append("QcloudVolte-Scripts.zip")
 
-# module zip (only with your own patched files)
-have_files = os.path.isfile(APK) and os.path.getsize(APK) > 0 and os.path.isfile(LIB) and os.path.getsize(LIB) > 0
+have_files = has(APK_SRC) and has(LIB_SRC)
 if have_files:
-    md5 = hashlib.md5(open(LIB, "rb").read()).hexdigest()
+    md5 = hashlib.md5(open(LIB_SRC, "rb").read()).hexdigest()
     if md5 != LIB_MD5:
         print(f"WARNING: libims md5 is {md5}, expected {LIB_MD5}")
+
+    # 2. Magisk / KernelSU module
     with zipfile.ZipFile("dist/QcloudVolte-Module.zip", "w", zipfile.ZIP_DEFLATED) as z:
         add_tree(z, "module")
-        z.write(APK, "system/system_ext/priv-app/Ims6/Ims6.apk")
-        z.write(LIB, "system/system_ext/lib64/libims.lge.so")
+        z.write(APK_SRC, APK_DST)
+        z.write(LIB_SRC, LIB_DST)
         add_tree(z, "scripts", "scripts")
     built.append("QcloudVolte-Module.zip")
+
+    # 3. system installer (no Magisk): flat system/ layout + scripts at the root
+    with zipfile.ZipFile("dist/QcloudVolte-System-Installer.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(APK_SRC, APK_DST)
+        z.write(LIB_SRC, LIB_DST)
+        for fn in sorted(os.listdir("scripts")):
+            if os.path.isfile(os.path.join("scripts", fn)) and not skip(fn):
+                z.write(os.path.join("scripts", fn), fn)
+    built.append("QcloudVolte-System-Installer.zip")
 else:
-    print("Module zip skipped: release-files/Ims6.apk or libims.lge.so is missing (see release-files/README.txt).")
+    print(f"Module and system installer skipped: {APK_SRC} or {LIB_SRC} is missing.")
 
 with open("dist/MD5SUMS.txt", "w") as f:
     for name in built:
