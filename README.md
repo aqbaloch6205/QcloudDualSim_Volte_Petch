@@ -230,7 +230,15 @@ The files below are LG's software, so keep the device tree private if you add th
 Note: this example was written without reading the device tree. Confirm the original module names (step 1) and whether the tree uses `Android.bp`
 (then use `prebuilt_app` and `prebuilt_shared_library`) before building.
 
-## Release (GitHub Actions)
+## Release
+
+**Local release (includes the module zip):** on the machine that has your patched files in `release-files/`:
+```
+python3 release.py v1.0
+```
+This builds both zips from your files and creates the GitHub release (or uploads to it if it exists). It needs the GitHub CLI (`gh auth login`).
+
+**GitHub Actions release (scripts only):**
 
 Push a tag (`v1.0`, `v1.1`, ...) and `.github/workflows/release.yml` runs `build.py` and creates a GitHub release with the zips and `MD5SUMS.txt`.
 The release text is in `RELEASE_NOTES.md`. The public release contains scripts only. The module zip is built only where `release-files/` has your own patched files,
