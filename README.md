@@ -70,7 +70,7 @@ In `CheckServiceAvailable`, find `bl AoSServiceAvailable::IsUnavailableReasonEmp
 
 ## Easy install: Magisk / KernelSU module (recommended for non-technical users)
 
-Build the zips with `build.sh` (see `release-files/README.txt`), or use the prebuilt ones from GitHub Releases.
+Build the zips with `python3 build.py` (put your own patched files in `release-files/` first, see that folder's README).
 
 Flash `QcloudVolte-Module.zip` in KernelSU or Magisk, reboot, wait 3 to 4 minutes, then toggle airplane mode once.
 No terminal, no file copying, and nothing in `/system_ext` is changed (systemless). Remove the module and reboot to go back to stock.
@@ -182,6 +182,59 @@ If something does not work:
 
 Files that must be installed together: `QcloudVolte`, `MSimUtils`, `SIMOperatorDetector`, `LGExtApi$Uicc`, `ImsState`, `ImsStateProvider`, `UCStateUtils`.
 Removing `QcloudVolte` makes LGIMS crash; editing it disables the fix.
+
+## Device tree (ROM build)
+
+If you build the ROM yourself, you can ship the patch inside the device tree instead of flashing the module.
+The files below are LG's software, so keep the device tree private if you add them.
+
+1. Find the original module names in your tree (they can differ between trees):
+   ```sh
+   grep -rn "Ims6\|libims.lge" vendor/lge device/lge
+   ```
+2. Put the patched files in the device tree:
+   ```
+   device/lge/timelm/qcloudvolte/prebuilt/Ims6.apk
+   device/lge/timelm/qcloudvolte/prebuilt/lib64/libims.lge.so
+   ```
+3. Add `device/lge/timelm/qcloudvolte/Android.mk` (Make style; check the tree first, see the note below):
+   ```make
+   LOCAL_PATH := $(call my-dir)
+
+   include $(CLEAR_VARS)
+   LOCAL_MODULE := Ims6
+   LOCAL_MODULE_CLASS := APPS
+   LOCAL_MODULE_TAGS := optional
+   LOCAL_PRIVILEGED_MODULE := true
+   LOCAL_CERTIFICATE := PRESIGNED
+   LOCAL_SRC_FILES := prebuilt/Ims6.apk
+   LOCAL_MODULE_PATH := $(TARGET_OUT_SYSTEM_EXT)/priv-app/Ims6
+   LOCAL_OVERRIDES_PACKAGES := Ims6
+   include $(BUILD_PREBUILT)
+
+   include $(CLEAR_VARS)
+   LOCAL_MODULE := libims.lge
+   LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+   LOCAL_MULTILIB := 64
+   LOCAL_SRC_FILES := prebuilt/lib64/libims.lge.so
+   LOCAL_MODULE_PATH := $(TARGET_OUT_SYSTEM_EXT)/lib64
+   LOCAL_MODULE_STEM := libims.lge
+   include $(BUILD_PREBUILT)
+   ```
+4. Include it in the device makefiles (`timelm-vendor.mk` or `device.mk`):
+   ```make
+   PRODUCT_PACKAGES += Ims6 libims.lge
+   ```
+5. Build and check that `Ims6.apk` and `libims.lge.so` in the output match the md5 values above.
+
+Note: this example was written without reading the device tree. Confirm the original module names (step 1) and whether the tree uses `Android.bp`
+(then use `prebuilt_app` and `prebuilt_shared_library`) before building.
+
+## Release (GitHub Actions)
+
+Push a tag (`v1.0`, `v1.1`, ...) and `.github/workflows/release.yml` runs `build.py` and creates a GitHub release with the zips and `MD5SUMS.txt`.
+The release text is in `RELEASE_NOTES.md`. The public release contains scripts only. The module zip is built only where `release-files/` has your own patched files,
+so keep those files out of a public repository.
 
 ## Credits
 
