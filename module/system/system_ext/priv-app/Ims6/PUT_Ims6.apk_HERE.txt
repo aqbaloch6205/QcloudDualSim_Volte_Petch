@@ -1,0 +1,1 @@
+Put the modified Ims6.apk here (stock path: /system_ext/priv-app/Ims6/Ims6.apk), then delete this file.
