@@ -1,0 +1,6 @@
+dist/
+build/
+release-files/*.apk
+release-files/*.so
+*.zip
+*.orig
